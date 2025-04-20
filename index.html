@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MSA Chatbot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      body {
+        background: linear-gradient(135deg, #1e1f2f, #151623);
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .chat-container {
+        width: 100%;
+        max-width: 500px;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 0;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(25px);
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+      }
+
+      .chat-header {
+        padding: 1rem;
+        text-align: center;
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #ffffffee;
+        background: rgba(255, 255, 255, 0.04);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .chat-box {
+        flex: 1;
+        padding: 1rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        scroll-behavior: smooth;
+      }
+
+      .chat-box::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .chat-box::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 10px;
+      }
+
+      .message {
+        padding: 12px 18px;
+        border-radius: 18px;
+        max-width: 75%;
+        word-wrap: break-word;
+        font-size: 0.95rem;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        line-height: 1.4;
+        opacity: 0;
+        animation: fadeIn 0.4s forwards;
+      }
+
+      .message.user {
+        background: linear-gradient(to right, #ffcc70, #ffaa00);
+        color: #000;
+        align-self: flex-end;
+      }
+
+      .message.bot {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+        align-self: flex-start;
+      }
+
+      .message.typing {
+        font-style: italic;
+        opacity: 0.7;
+      }
+
+      @keyframes fadeIn {
+        0% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      @keyframes dots {
+        0% { content: "."; }
+        33% { content: ".."; }
+        66% { content: "..."; }
+        100% { content: "."; }
+      }
+
+      .typing-dots::after {
+        content: "...";
+        animation: dots 1.5s infinite steps(3);
+        font-size: 1.1em;
+        padding-left: 5px;
+        display: inline-block;
+        white-space: nowrap;
+      }
+
+      .chat-input {
+        display: flex;
+        gap: 0.6rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .chat-input input {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: none;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        outline: none;
+        font-size: 1rem;
+      }
+
+      .chat-input input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .chat-input button {
+        padding: 0.75rem 1rem;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(to right, #ffcc70, #ffaa00);
+        color: #000;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        font-size: 1rem;
+      }
+
+      .chat-input button:hover {
+        background: linear-gradient(to right, #f5b642, #e09100);
+      }
+
+      @media (max-width: 576px) {
+        .chat-container {
+          height: 100vh;
+          border-radius: 0;
+        }
+
+        .chat-input {
+          flex-direction: column;
+        }
+
+        .chat-input input,
+        .chat-input button {
+          width: 100%;
+          font-size: 1rem;
+        }
+
+        .chat-input button {
+          margin-top: 8px;
+        }
+
+        .message {
+          font-size: 0.9rem;
+        }
+      }
+    </style>
+  </head>
+  <body oncontextmenu="return false">
+    <div class="chat-container">
+      <div class="chat-header">MSA AI Chatbot</div>
+      <div class="chat-box" id="chat-box">
+        <div class="message bot">Hello! How can I help you today?</div>
+      </div>
+      <div class="chat-input">
+        <input type="text" id="user-input" placeholder="Type your message..." onkeydown="if(event.key === 'Enter') sendMessage()" />
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+
+    <audio id="send-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_2e0e52913c.mp3?filename=message-pop-alert-142054.mp3" preload="auto"></audio>
+    <audio id="receive-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_6978c38342.mp3?filename=message-pop-142058.mp3" preload="auto"></audio>
+    <audio id="typing-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_f27c76d7eb.mp3" preload="auto"></audio>
+
+    <script>
+      const chatBox = document.getElementById("chat-box");
+      const sendSound = document.getElementById("send-sound");
+      const receiveSound = document.getElementById("receive-sound");
+      const typingSound = document.getElementById("typing-sound");
+
+      async function sendMessage() {
+        const input = document.getElementById("user-input");
+        const message = input.value.trim();
+        if (!message) return;
+
+        displayMessage(message, "user");
+        input.value = "";
+
+        displayTypingIndicator();
+
+        setTimeout(async () => {
+          try {
+            const response = await fetch("https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=AIzaSyCgfDezu464C8Vb8giGY10_2J6TYn1L1F4", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: message }] }],
+              }),
+            });
+
+            const data = await response.json();
+            const botReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't understand that.";
+            updateLastBotMessage(botReply);
+          } catch (error) {
+            updateLastBotMessage("Error connecting to Gemini API.");
+            console.error(error);
+          }
+        }, 2000);
+      }
+
+      function displayMessage(message, sender) {
+        const div = document.createElement("div");
+        div.className = `message ${sender}`;
+        div.innerText = message;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        sender === "user" ? sendSound.play() : receiveSound.play();
+      }
+
+      function displayTypingIndicator() {
+        const typingMessage = document.createElement("div");
+        typingMessage.className = "message bot typing";
+        typingMessage.innerHTML = '<span class="typing-dots"></span>';
+        chatBox.appendChild(typingMessage);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        typingSound.play();
+      }
+
+      function updateLastBotMessage(newText) {
+        const botMessages = document.querySelectorAll(".message.bot");
+        if (botMessages.length > 0) {
+          botMessages[botMessages.length - 1].innerText = newText;
+        }
+      }
+    </script>
+  </body>
+</html>
